@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>你的會長 · 學生會選舉</title>
+  <meta name="description" content="學生會會長及副會長候選人 —— 政綱、介紹，以及寫下你對學校的願望。">
+  <meta name="theme-color" content="#0a1020">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chiron+Hei+HK:wght@700;900&family=Noto+Sans+TC:wght@400;500;700;900&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=LXGW+WenKai+TC:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=0927c">
+  <script>
+    document.documentElement.classList.add("js");
+    // 每次打開都從最上面開始：不要讓瀏覽器記住上次捲到哪裡（這個網站的高度在載入時會改變，記住的位置會變成「隨機的頁面」）
+    if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+    if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+    window.scrollTo(0, 0);
+  </script>
+</head>
+<body class="is-loading">
+
+  <!-- ================= 1. 載入畫面（3D 權杖） ================= -->
+  <div class="loader" id="loader" aria-live="polite">
+    <img class="loader__fallback" src="assets/staff.png" alt="" hidden>
+    <p class="loader__team"><span data-bind="teamName"></span> · 學生會選舉</p>
+    <p class="loader__count" aria-hidden="true"><span id="loaderCount">000</span></p>
+    <p class="loader__label" aria-hidden="true">載入中</p>
+    <div class="loader__bar"><span id="loaderBar"></span></div>
+    <button class="loader__start" id="loaderStart" type="button">點擊任意處開始</button>
+  </div>
+
+  <!-- 3D 權杖（載入畫面之後變成全站的「指引」） -->
+  <canvas class="staff3d" id="staff3d" aria-hidden="true"></canvas>
+
+  <!-- 轉場：火牆 & 橫條 -->
+  <div class="firewall" id="firewall" aria-hidden="true"><div class="flames"></div></div>
+
+  <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
+
+  <!-- ================= 導覽列 ================= -->
+  <header class="nav">
+    <a class="nav__brand" href="#top" aria-label="回到頂部">
+      <img class="nav__mark" src="assets/staff.png" alt="">
+      <span class="nav__team" data-bind="teamName"></span>
+    </a>
+    <nav aria-label="主要導覽">
+      <ul class="nav__links">
+        <li><a href="#president">會長</a></li>
+        <li><a href="#vice">副會長</a></li>
+        <li><a href="#platform">政綱</a></li>
+        <li><a href="#wish" class="nav__wish" data-to-wish>願望</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="top">
+
+    <!-- ================= 2. 你的會長 ================= -->
+    <section class="hero" aria-labelledby="heroTitle">
+      <div class="hero__bg" aria-hidden="true"></div>
+      <p class="hero__eyebrow" data-hero-fade><span class="num">No. <span data-bind="candidateNumber"></span></span>學生會選舉</p>
+      <h1 class="hero__title" id="heroTitle" data-split>你的會長</h1>
+
+      <div class="hero__stage">
+        <figure class="person person--president">
+          <img class="person__img" data-bind-src="president.photo" data-bind-alt="president" alt="" width="402" height="549" decoding="async">
+          <figcaption class="plaque"><span class="plaque__role">會長</span><span class="plaque__name" data-bind="president.name"></span></figcaption>
+        </figure>
+        <figure class="person person--vice">
+          <img class="person__img" data-bind-src="vice.photo" data-bind-alt="vice" alt="" width="995" height="1185" decoding="async">
+          <figcaption class="plaque"><span class="plaque__role">副會長</span><span class="plaque__name" data-bind="vice.name"></span></figcaption>
+        </figure>
+      </div>
+
+      <div class="hero__foot">
+        <p class="hero__slogan" data-bind="slogan" data-hero-fade></p>
+        <div class="hero__actions" data-hero-fade>
+          <a class="btn btn--red" href="#wish" data-to-wish data-magnetic id="heroCta">
+            <span class="btn__label">寫下你的願望</span> <span aria-hidden="true">↓</span>
+          </a>
+          <a class="btn btn--ghost" href="#president" data-magnetic><span class="btn__label">認識我們</span></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 跑馬燈 -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee__track" id="marquee">
+        <span>你的會長</span><i>+</i><span>你的聲音</span><i>+</i><span>一起改變</span><i>+</i><span class="red">請投 <b data-bind="candidateNumber"></b> 號</span><i>+</i>
+      </div>
+    </div>
+
+    <!-- ================= 火牆：數字 ================= -->
+    <section class="burn" id="burn" aria-label="我們的承諾">
+      <div class="burn__pin">
+        <div class="burn__wall">
+          <div class="flames"></div>
+          <ul class="burn__facts" id="facts"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 3 & 4. 會長 / 副會長（桌面版：固定舞台，內容交替） ================= -->
+    <section class="duo" id="president" aria-label="候選人">
+      <div class="duo__pin">
+
+        <article class="slide slide--president" aria-labelledby="presidentName">
+          <div class="slide__bg" aria-hidden="true"></div>
+          <div class="slide__band" aria-hidden="true"><div class="slide__track" data-marquee="president"></div></div>
+          <figure class="slide__photo">
+            <img class="person__img" data-bind-src="president.photoFull" data-bind-alt="president" alt="" width="402" height="549" decoding="async" loading="lazy">
+          </figure>
+          <div class="slide__text">
+            <p class="slide__eyebrow" data-line><span class="num">No.<span data-bind="candidateNumber"></span></span>會長候選人</p>
+            <h2 class="slide__name" id="presidentName" data-bind="president.name" data-chars></h2>
+            <p class="slide__intro" data-bind="president.intro" data-line></p>
+            <a class="slide__ig" data-ig="president" target="_blank" rel="noopener" data-line></a>
+            <ul class="slide__stats" data-points="president"></ul>
+          </div>
+        </article>
+
+        <article class="slide slide--vice" id="vice" aria-labelledby="viceName">
+          <div class="slide__bg" aria-hidden="true"></div>
+          <div class="slide__band" aria-hidden="true"><div class="slide__track" data-marquee="vice"></div></div>
+          <figure class="slide__photo">
+            <img class="person__img" data-bind-src="vice.photoFull" data-bind-alt="vice" alt="" width="995" height="1185" decoding="async" loading="lazy">
+          </figure>
+          <div class="slide__text">
+            <p class="slide__eyebrow" data-line><span class="num">No.<span data-bind="candidateNumber"></span></span>副會長候選人</p>
+            <h2 class="slide__name" id="viceName" data-bind="vice.name" data-chars></h2>
+            <p class="slide__intro" data-bind="vice.intro" data-line></p>
+            <a class="slide__ig" data-ig="vice" target="_blank" rel="noopener" data-line></a>
+            <ul class="slide__stats" data-points="vice"></ul>
+          </div>
+        </article>
+
+        <p class="duo__counter" aria-hidden="true"><span class="num" id="duoIndex">01</span> / 02</p>
+      </div>
+    </section>
+
+    <!-- ================= 撕紙：口號 ================= -->
+    <section class="tear" aria-label="口號">
+      <div class="tear__pin">
+        <div class="tear__band">
+          <div class="tear__red"></div>
+          <p class="tear__kicker">我們參選的原因很簡單</p>
+          <p class="tear__quote" id="tearQuote" data-bind="reason"></p>
+        </div>
+        <!-- 一張黑紙被撕成上下兩半（捲動時拉開） -->
+        <div class="rip rip--top" aria-hidden="true"></div>
+        <div class="rip rip--bottom" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <!-- ================= 5. 我們的政綱（桌面版：卡片畫廊） ================= -->
+    <section class="platform" id="platform" aria-labelledby="platformTitle">
+      <div class="platform__pin">
+        <!-- 桌面版：3D 花田（js/policy3d.js），海報立在花裡，鏡頭一張一張飛過去 -->
+        <canvas class="platform__gl" id="platformGL" aria-hidden="true"></canvas>
+        <p class="platform__ghost" id="platformGhost" aria-hidden="true">01</p>
+        <div class="platform__head">
+          <p class="eyebrow"><span class="num">03</span>一起做到</p>
+          <h2 class="section-title" id="platformTitle">我們的政綱</h2>
+        </div>
+        <ol class="platform__track" id="platformTrack"></ol>
+        <p class="platform__count" aria-hidden="true"><span class="num" id="platformIndex">01</span></p>
+        <!-- 桌面版：畫廊最後一張是撕紙邊的問題卡片，撕開成全螢幕，直接接到願望區 -->
+        <div class="platform__rim" aria-hidden="true"></div>
+        <div class="platform__zoom portal__card" aria-hidden="true">
+          <p class="portal__eyebrow">04 · 你的聲音</p>
+          <p class="portal__title">如果我們當選，<br>你希望學校有<br>什麼改變？</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 展開的卡片 → 願望 ================= -->
+    <section class="portal" aria-hidden="true">
+      <div class="portal__pin">
+        <div class="portal__rim" aria-hidden="true"></div>
+        <div class="portal__card">
+          <p class="portal__eyebrow">04 · 你的聲音</p>
+          <p class="portal__title">如果我們當選，<br>你希望學校有<br>什麼改變？</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 6. 寫下你的願望 ================= -->
+    <section class="wish" id="wish" aria-labelledby="wishTitle">
+      <div class="wish__head">
+        <p class="eyebrow" data-reveal><span class="num">04</span>你的聲音</p>
+        <h2 class="section-title" id="wishTitle" data-reveal>寫下你的願望</h2>
+      </div>
+
+      <div class="wish__grid">
+        <form class="wish-form" id="wishForm" novalidate>
+          <div class="field">
+            <label for="wishText">如果我們當選，你希望學校有什麼改變？<span class="req">*</span></label>
+            <textarea id="wishText" name="text" rows="5" maxlength="200" required
+              placeholder="例如：在販賣機旁邊加一台零錢兌換機……" aria-describedby="wishCount wishError"></textarea>
+            <div class="field__meta">
+              <span class="field__error" id="wishError" role="alert"></span>
+              <span class="field__count" id="wishCount">0 / 200</span>
+            </div>
+          </div>
+
+          <fieldset class="field">
+            <legend>類別</legend>
+            <div class="chips" id="categoryChips"></div>
+          </fieldset>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="wishName">名字 <span class="opt">（可不填）</span></label>
+              <input id="wishName" name="name" type="text" maxlength="20" autocomplete="off" placeholder="匿名">
+            </div>
+            <div class="field">
+              <label for="wishClass">班別 <span class="opt">（可不填）</span></label>
+              <input id="wishClass" name="className" type="text" maxlength="10" autocomplete="off" placeholder="例如 4A">
+            </div>
+          </div>
+
+          <!-- 防機器人：真人看不到這一格，機器人會亂填 -->
+          <input class="hp" id="wishHoney" name="_honey" type="text" tabindex="-1" autocomplete="off" aria-hidden="true">
+          <button class="btn btn--red btn--block" type="submit" id="wishSubmit"><span class="btn__label">提交願望</span></button>
+          <p class="wish-form__thanks" id="wishThanks" role="status" aria-live="polite"></p>
+        </form>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- ================= 7. 頁尾 ================= -->
+  <footer class="footer">
+    <!-- 「請投 X 號」由 main.js 產生：候選編號是 1 的話，權杖會飛下來站在「1」的位置，變成那個「1」 -->
+    <p class="footer__vote" id="footerVote"></p>
+    <p class="footer__label">投票日</p>
+    <p class="footer__date" data-bind="voteDate"></p>
+    <ul class="footer__socials" id="socials"></ul>
+    <p class="footer__small"><span data-bind="teamName"></span> · 學生會選舉</p>
+  </footer>
+
+  <!-- 浮動按鈕：隨時可以寫願望 -->
+  <a class="float-wish" href="#wish" data-to-wish aria-label="寫下你的願望">
+    <span aria-hidden="true">✎</span> 寫願望
+  </a>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/environments/RoomEnvironment.js"></script>
+  <script src="js/config.js?v=0927c"></script>
+  <script src="js/wishStore.js?v=0927c"></script>
+  <script src="js/staff-model.js?v=0927c"></script>
+  <script src="js/staff3d.js?v=0927c"></script>
+  <script src="js/embers.js?v=0927c"></script>
+  <script src="js/flowers.js?v=0927c"></script>
+  <script src="js/flowers-model.js?v=0927c"></script>
+  <script src="js/policy3d.js?v=0927c"></script>
+  <script src="js/main.js?v=0927c"></script>
+  <script src="js/wishes.js?v=0927c"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+# 本機開發工具（預覽伺服器設定）
+.claude/
+
+# 網站沒用到的原始照片 / 舊照片（留在自己電腦就好，不要公開）
+assets/president.png
+assets/president-cut.png
+assets/vice-cut.png
+assets/vice.webp
+
+# 系統檔
+.DS_Store
+Thumbs.db
+desktop.ini
