@@ -16,12 +16,12 @@ window.SITE_CONFIG = {
   president: {
     name: "張芝穎",
     className: "",                // 班別（留空就不顯示）
-    photo: "assets/president-cut.webp",   // 已去背的照片（首頁用，底部淡出）
-    photoFull: "assets/president-full.webp",   // 候選人介紹用（底部不淡出，站在畫面最下緣）
+    photo: "assets/president2-cut.webp",   // 已去背的照片（首頁用，底部淡出）
+    photoFull: "assets/president2-full.webp",   // 候選人介紹用（底部不淡出，站在畫面最下緣）
     instagram: "ylning.5271",
     intro: "跟 AI 討論政見到半夜（AI 可能比我還熟）。曾經在睡夢中穿越回古代，順便把地理課上完，醒來發現跟課本上一樣（？）",
     points: [
-      { title: "特殊專長", desc: "一個問題想出 10 種發展可能（很會焦慮了）；模考題本寫一節課就全班最高（真實性有待確認）" },
+      { title: "特殊專長", desc: "一個問題想出 10 種發展可能；模考題本寫一節課就全班最高（真實性有待確認）" },
       { title: "興趣", desc: "看 Hook（？）、看小說 & 動漫" },
       { title: "綽號", desc: "KIKI AI、古人" },
       { title: "事蹟", desc: "參加科展得名、國中市長獎畢業，喜歡發起各式各樣奇奇怪怪的活動" }
