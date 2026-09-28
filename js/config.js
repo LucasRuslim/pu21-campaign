@@ -34,12 +34,12 @@ window.SITE_CONFIG = {
     photo: "assets/vice2-cut.webp",
     photoFull: "assets/vice2-full.webp",
     instagram: "itchen_7",
-    intro: "模考萬年校排一、考上建中 —— 但吃飯吃很慢。",
+    intro: "萬年校排一、考上建中 —— 但吃飯吃很慢。",
     points: [
       { title: "特殊專長", desc: "睡死、吃統餐吃到吐（外加吃飯吃很慢）" },
       { title: "興趣", desc: "籃球、看任何體育競賽" },
       { title: "綽號", desc: "三角形（因為他打三角形的題都會對，根本像咒語）" },
-      { title: "事蹟", desc: "考上建中、優良學生第二名、模考萬年校排一" }
+      { title: "事蹟", desc: "考上建中、優良學生第二名、萬年校排一" }
     ]
   },
 
@@ -47,7 +47,7 @@ window.SITE_CONFIG = {
   facts: [
     { num: "2", label: "號候選人" },
     { num: "10", label: "種發展可能 · 一個問題想出來的" },
-    { num: "1", label: "模考萬年校排" }
+    { num: "1", label: "萬年校排" }
   ],
 
   // 「我們的政綱」—— image：卡片背景圖，focus：圖片裁切時要保留的位置（左右% 上下%）
