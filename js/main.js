@@ -800,7 +800,31 @@
     var ph3 = { look: 0, day: 1, bloom: 0, swoop: 0 }, cam = { p: 0 }, zm = { z: 0 };
     var H = function () { return window.innerHeight; }, Wv = function () { return window.innerWidth; };
     // 時間軸上的位置（單位 ≈ 一個畫面的捲動距離）
-    var T = { sky: 1.15, night: 1.85, spell: 3.25, swoop: 4.25, posters: 4.95, handoff: 9.15 };
+    // 手機：看海報那一段拉長（一張大約一個畫面的捲動），而且滑完會停在最近的一張海報上 → 滑一下不會跳過一張
+    var phone = !isDesktop();
+    var PD = phone ? 7 : 4;                                     // F 段（一張一張看海報）的長度
+    var T = { sky: 1.15, night: 1.85, spell: 3.25, swoop: 4.25, posters: 4.95, handoff: 4.95 + PD + .2 };
+    var TOTAL = T.handoff + 2;                                  // G 段 1.7 + 最後停一下 .3
+    // 吸附（像翻頁）：從上一張海報往下滑一點點就到下一張、往上滑就回上一張，一次只動一張
+    // 只看停下來的位置和上一張的差距，不看滑動速度（用力一滑，速度預測的終點會很遠）
+    // lastIdx：上一次停的那張（-1：還在海報前面，5：已經過了問題卡片）
+    var lastIdx = -1;
+    function stopT(i) { return T.posters + PD * P3.stopAt(i); }
+    function snapPoster(v) {
+      var cur = tl.scrollTrigger ? tl.scrollTrigger.progress : v, t = cur * TOTAL;
+      var best;
+      if (lastIdx >= 0 && lastIdx <= 4) {
+        var dt = t - stopT(lastIdx);
+        best = Math.abs(dt) < PD * .18 * .12 ? lastIdx : lastIdx + (dt > 0 ? 1 : -1);
+      } else if (t > T.posters - .3 && t < T.posters + PD + .3) {
+        best = lastIdx < 0 ? 0 : 4;                                 // 從前面進來 → 第一張；從後面回來 → 問題卡片
+      } else {
+        best = t < T.posters ? -1 : 5;
+      }
+      lastIdx = best;
+      if (best < 0 || best > 4) return cur;                         // 滑出看海報那一段：不吸附
+      return stopT(best) / TOTAL;
+    }
     var lastBloom = 0;
     var pinEl = $(".platform__pin"), lastMask = null;
     function update() {
@@ -827,8 +851,10 @@
     }
     var tl = gsap.timeline({
       scrollTrigger: {
-        trigger: ".platform", start: "top top", end: "+=" + (isDesktop() ? 1190 : 850) + "%",   // 手機：短一點，不用滑那麼久
+        trigger: ".platform", start: "top top", end: "+=" + Math.round(TOTAL * (phone ? 76 : 1190 / 11.15)) + "%",   // 手機：前面的段落短一點
         pin: ".platform__pin", scrub: .8, invalidateOnRefresh: true,
+        snap: phone ? { snapTo: snapPoster, duration: { min: .25, max: .7 }, delay: .1, ease: "power1.inOut" } : null,
+        onLeave: function () { lastIdx = 5; }, onLeaveBack: function () { lastIdx = -1; },
         onToggle: function (self) { p3Running = self.isActive; if (self.isActive) P3.start(); else P3.stop(); },
         onRefresh: update,
         onUpdate: function (self) {
@@ -869,9 +895,9 @@
     tl.to(ph3, { swoop: 1, duration: .7, ease: "power1.inOut" }, T.swoop)
       .to(".platform__head", { opacity: 0, y: -50, duration: .4, ease: "power1.in" }, T.swoop + .15);
     // F. 一張一張看海報
-    tl.to(cam, { p: 1, ease: "none", duration: 4 }, T.posters)
+    tl.to(cam, { p: 1, ease: "none", duration: PD }, T.posters)
       .fromTo(".platform__count", { opacity: 0 }, { opacity: 1, duration: .3 }, T.posters)
-      .to(".platform__count", { opacity: 0, duration: .3 }, T.posters + 3.75);
+      .to(".platform__count", { opacity: 0, duration: .3 }, T.posters + PD - .25);
     // G. 推進問題卡片
     tl.to(zm, { z: 1, ease: "power1.inOut", duration: 1.7 }, T.handoff)
       .to({}, { duration: .3 });
