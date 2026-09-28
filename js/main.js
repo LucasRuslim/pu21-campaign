@@ -113,9 +113,10 @@
   });
   var cards = $$(".platform__card");
 
-  // 政綱：桌面版用 3D 花田（js/policy3d.js）；不支援 WebGL / 手機 → 原本的卡片
+  // 政綱：跑得動的裝置（電腦、手機都一樣）用 3D 花田（js/policy3d.js）；跑不動（Policy3D.hardware 說不行）→ 原本的卡片
   var P3 = window.Policy3D;
-  var use3D = !!(P3 && P3.ok && animate && window.innerWidth > 900);
+  var use3D = !!(P3 && P3.ok && animate && P3.hardware && P3.hardware.ok);
+  if (P3 && P3.hardware) console.info("3D 花田：" + (use3D ? "開" : "關") + "（" + P3.hardware.why + "）");
   var p3Active = 0;
   var p3Targets = [0, 1, 2, 3, 4].map(function (i) {   // 權杖指向用：假的「元素」，位置是 3D 海報投影在畫面上的位置
     return { getBoundingClientRect: function () { return (P3 && P3.panelRect && P3.panelRect(i)) || { left: -9999, top: -9999, width: 0, height: 0, right: -9999, bottom: -9999 }; } };
@@ -265,9 +266,9 @@
     Staff.define("spell", { at: [0.5, 0.24], angle: -90, size: 0.42, emphasis: false });
     Staff.define("away", { at: [0.5, 1.6], angle: 90, size: 0.42, emphasis: false });
     Staff.define("platform", {
-      el: function () { return use3D && isDesktop() ? p3Targets[p3Active] : (cards[activeCard] || cards[0]); },
-      anchor: function () { return isDesktop() ? [1, 0.5] : [1, 0.15]; },
-      angle: function () { return isDesktop() ? 168 : 160; }, gap: 14, size: function () { return use3D && isDesktop() ? .4 : .46; },
+      el: function () { return use3D ? p3Targets[p3Active] : (cards[activeCard] || cards[0]); },
+      anchor: function () { return isDesktop() ? [1, 0.5] : [1, 0.15]; },   // 手機：海報佔滿畫面，指右上角，不擋到字
+      angle: function () { return isDesktop() ? 168 : 160; }, gap: 14, size: function () { return use3D ? .4 : .46; },
       emphasis: false
     });
     Staff.define("portal", {
@@ -788,7 +789,7 @@
   }
   function smooth01(x) { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); }
 
-  /* 3D 花田（桌面版，一個連續的鏡頭）：
+  /* 3D 花田（電腦和跑得動的手機，一個連續的鏡頭）：
      A 黑紙撕開，露出藍色和參選原因 → B 藍紙往後倒、字變淡，變成天空 → C 天空變成星空，鏡頭往下看到空的草地
      → D 權杖施展花田魔法：一圈光擴散，花開出來，海報從土裡升起 → E 俯衝進花田 → F 一張一張看海報
      → G 問題卡片：紙邊出現，鏡頭直直推進卡片裡，穿過去就是願望區 */
@@ -967,6 +968,7 @@
     };
   });
   mmPlat.add("(max-width: 900px)", function () {
+    if (use3D) return build3D();
     cards.forEach(function (c, i) {
       gsap.from(c, {
         y: 60, rotationX: -20, opacity: 0, duration: 1.3, ease: "expo.out", transformPerspective: 900,
@@ -975,8 +977,8 @@
     });
   });
 
-  /* ---- 手機版：撕紙邊的問題卡片 → 撕開成全螢幕 → 願望區（桌面版在政綱畫廊裡完成） ---- */
-  gsap.matchMedia().add("(max-width: 900px)", function () {
+  /* ---- 手機卡片版：撕紙邊的問題卡片 → 撕開成全螢幕 → 願望區（桌面版在政綱畫廊裡完成；3D 版在花田裡完成） ---- */
+  if (!use3D) gsap.matchMedia().add("(max-width: 900px)", function () {
     var card = $(".portal .portal__card"), rim = $(".portal__rim");
     var title = $(".portal .portal__title"), eb = $(".portal .portal__eyebrow");
     var tear = makeTear(11, 44);
@@ -1088,8 +1090,8 @@
       zone(".slide--vice", "vice");
     }
     // 撕紙：口號露出來之後才指向它（在撕紙動畫的 onUpdate 裡）
-    zone(".platform", "platform", "top 50%", isDesktop() ? "top top" : "bottom 50%");   // 手機：卡片是一般清單，整段都指向中間那張
-    if (!isDesktop()) zone(".portal", "portal", "top 50%", "bottom 50%");
+    zone(".platform", "platform", "top 50%", use3D || isDesktop() ? "top top" : "bottom 50%");   // 手機卡片版：卡片是一般清單，整段都指向中間那張
+    if (!use3D && !isDesktop()) zone(".portal", "portal", "top 50%", "bottom 50%");
     // 願望 → 頁尾在同一個捲動位置交接；權杖提早離開，先滑到畫面左邊外面，準備最後的飛越
     zone(".wish", "wish", "top 45%", "bottom 92%");
     zone(".footer", "footer", "top 92%", "bottom top");

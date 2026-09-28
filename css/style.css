@@ -579,46 +579,55 @@ html.fx .portal__rim { display: block; position: absolute; inset: 0; z-index: 0;
   }
   html.fx .platform__rim { display: block; position: absolute; inset: 0; z-index: 4; visibility: hidden; }
   html.fx .portal { display: none; }
-  /* 3D 花田版本 */
-  html.fx.p3d .platform__gl { display: block; position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
-  /* 撕紙那一段搬進來之後：藍紙和撕開的黑紙疊在 3D 畫面上面 */
-  /* 往上疊進副會長那一段 52vh：副會長淡出的同時，撕紙那一段（頂端羽化，由 main.js 控制）就從下面升上來，中間不會有一段空白 */
-  html.fx.p3d .platform { margin-top: -52vh; z-index: 2; }
-  html.fx.p3d .platform__pin { perspective: 1000px; perspective-origin: 50% 72%; }   /* 藍紙往後躺成天空時的消失點＝地平線 */
-  html.fx.p3d .platform__pin > .tear__band {
-    z-index: 3; will-change: transform, opacity;
-    /* 往後躺成天空的時候（--soft 0 → 1），紙的四邊慢慢羽化，融進後面一樣藍的 3D 天空，看不到紙的硬邊 */
-    --soft: 0;
-    -webkit-mask-image:
-      linear-gradient(90deg, rgba(0,0,0,calc(1 - var(--soft))) 0%, #000 calc(var(--soft) * 30%), #000 calc(100% - var(--soft) * 30%), rgba(0,0,0,calc(1 - var(--soft))) 100%),
-      linear-gradient(180deg, #000 calc(100% - var(--soft) * 60%), rgba(0,0,0,calc(1 - var(--soft))) 100%);
-    -webkit-mask-composite: source-in;
-    mask-image:
-      linear-gradient(90deg, rgba(0,0,0,calc(1 - var(--soft))) 0%, #000 calc(var(--soft) * 30%), #000 calc(100% - var(--soft) * 30%), rgba(0,0,0,calc(1 - var(--soft))) 100%),
-      linear-gradient(180deg, #000 calc(100% - var(--soft) * 60%), rgba(0,0,0,calc(1 - var(--soft))) 100%);
-    mask-composite: intersect;
-  }
-  html.fx.p3d .platform__pin > .rip { z-index: 4; }
-  html.fx.p3d .platform__head { opacity: 0; }
-  html.fx.p3d .platform__count { opacity: 0; }
-  html.fx.p3d .platform__track, html.fx.p3d .platform__ghost { display: none; }
-  html.fx.p3d .platform__head { left: 0; right: 0; top: 17vh; transform: none; max-width: none; text-align: center; text-shadow: 0 2px 24px rgba(5, 10, 24, .6); }
-  html.fx.p3d .platform__head .eyebrow { justify-content: center; }
-  html.fx.p3d .platform__head .section-title { font-size: clamp(3rem, 7vw, 7rem); }
-  html.fx.p3d .platform__count { z-index: 2; text-shadow: 0 2px 16px rgba(5, 10, 24, .6); }
-  /* 問題卡片：夜空色、金邊（和 3D 裡的第五張卡片一樣），撕開之後直接接到願望區的深藍色 */
-  /* 3D 版：問題卡片整個在 3D 裡，這一層只剩最後「淡成深藍色」的遮罩（不放大、不裁切 → 很便宜） */
-  html.fx.p3d .platform__zoom { background: #0a1020; visibility: visible; opacity: 0; pointer-events: none; }
-  html.fx.p3d .platform__zoom > *, html.fx.p3d .platform__zoom::after, html.fx.p3d .platform__rim { display: none; }
-  /* 推進卡片到最後：整片淡成和願望區一樣的深藍色 → 接到下一段完全沒有邊 */
-  html.fx.p3d .platform__zoom::after { content: ""; position: absolute; inset: 0; background: #0a1020; opacity: var(--zfade, 0); pointer-events: none; }
 }
+
+/* 3D 花田版本（電腦和跑得動的手機都用這一套；手機卡片版的樣式在上面的一般規則裡） */
+html.fx.p3d .platform__pin { height: 100vh; padding: 0; overflow: hidden; }
+html.fx.p3d .platform__head { position: absolute; z-index: 2; }
+html.fx.p3d .platform__count { display: block; position: absolute; right: var(--gutter); bottom: 32px; font-size: 2.2rem; }
+html.fx.p3d .platform__zoom { display: grid; position: absolute; inset: 0; z-index: 5; min-height: 0; padding: 0; border-radius: 0; }
+html.fx.p3d .portal { display: none; }   /* 問題卡片在 3D 裡，不用另外一段 */
+@media (min-width: 901px) {
+  /* 電腦：往上疊進副會長那一段 52vh：副會長淡出的同時，撕紙那一段（頂端羽化，由 main.js 控制）就從下面升上來，中間不會有一段空白 */
+  html.fx.p3d .platform { margin-top: -52vh; z-index: 2; }
+}
+html.fx.p3d .platform__gl { display: block; position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+/* 撕紙那一段搬進來之後：藍紙和撕開的黑紙疊在 3D 畫面上面 */
+html.fx.p3d .platform__pin { perspective: 1000px; perspective-origin: 50% 72%; }   /* 藍紙往後躺成天空時的消失點＝地平線 */
+html.fx.p3d .platform__pin > .tear__band {
+  z-index: 3; will-change: transform, opacity;
+  /* 往後躺成天空的時候（--soft 0 → 1），紙的四邊慢慢羽化，融進後面一樣藍的 3D 天空，看不到紙的硬邊 */
+  --soft: 0;
+  -webkit-mask-image:
+    linear-gradient(90deg, rgba(0,0,0,calc(1 - var(--soft))) 0%, #000 calc(var(--soft) * 30%), #000 calc(100% - var(--soft) * 30%), rgba(0,0,0,calc(1 - var(--soft))) 100%),
+    linear-gradient(180deg, #000 calc(100% - var(--soft) * 60%), rgba(0,0,0,calc(1 - var(--soft))) 100%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(90deg, rgba(0,0,0,calc(1 - var(--soft))) 0%, #000 calc(var(--soft) * 30%), #000 calc(100% - var(--soft) * 30%), rgba(0,0,0,calc(1 - var(--soft))) 100%),
+    linear-gradient(180deg, #000 calc(100% - var(--soft) * 60%), rgba(0,0,0,calc(1 - var(--soft))) 100%);
+  mask-composite: intersect;
+}
+html.fx.p3d .platform__pin > .rip { z-index: 4; }
+html.fx.p3d .platform__head { opacity: 0; }
+html.fx.p3d .platform__count { opacity: 0; }
+html.fx.p3d .platform__track, html.fx.p3d .platform__ghost { display: none; }
+html.fx.p3d .platform__head { left: 0; right: 0; top: 17vh; transform: none; max-width: none; text-align: center; text-shadow: 0 2px 24px rgba(5, 10, 24, .6); }
+html.fx.p3d .platform__head .eyebrow { justify-content: center; }
+html.fx.p3d .platform__head .section-title { font-size: clamp(3rem, 7vw, 7rem); }
+html.fx.p3d .platform__count { z-index: 2; text-shadow: 0 2px 16px rgba(5, 10, 24, .6); }
+/* 問題卡片：夜空色、金邊（和 3D 裡的第五張卡片一樣），撕開之後直接接到願望區的深藍色 */
+/* 3D 版：問題卡片整個在 3D 裡，這一層只剩最後「淡成深藍色」的遮罩（不放大、不裁切 → 很便宜） */
+html.fx.p3d .platform__zoom { background: #0a1020; visibility: visible; opacity: 0; pointer-events: none; }
+html.fx.p3d .platform__zoom > *, html.fx.p3d .platform__zoom::after, html.fx.p3d .platform__rim { display: none; }
+/* 推進卡片到最後：整片淡成和願望區一樣的深藍色 → 接到下一段完全沒有邊 */
+html.fx.p3d .platform__zoom::after { content: ""; position: absolute; inset: 0; background: #0a1020; opacity: var(--zfade, 0); pointer-events: none; }
 
 /* =========================================================
    Responsive
    ========================================================= */
 @media (max-width: 900px) {
   .wish-form { position: static; }
+  html.fx.p3d .platform__count { right: auto; left: var(--gutter); }   /* 右下角是「寫願望」按鈕 */
   .slide--vice .slide__photo { --h: calc(var(--ph) * 1.12); }   /* 手機：他的照片拍到大腿，不用放那麼大 */
 }
 @media (max-width: 700px) {
