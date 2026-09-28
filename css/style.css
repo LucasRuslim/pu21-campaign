@@ -498,6 +498,23 @@ html.fx .slide__name { background-size: 0% 4px; }
 .float-wish:hover { transform: translateY(-3px); }
 .float-wish.is-hidden, body.is-loading .float-wish { opacity: 0; transform: translateY(24px); pointer-events: none; }
 
+/* 捲動提示（js/main.js）：停在要捲動才會動的段落時出現，進度條＝這一段走到哪裡 */
+.scroll-hint {
+  position: fixed; left: 50%; bottom: 28px; z-index: 41;
+  display: flex; flex-direction: column; align-items: center; gap: .45em;
+  padding: .6em 1.2em .65em; border-radius: 16px;
+  background: rgba(8, 12, 26, .78); border: 1px solid rgba(168, 220, 255, .35);
+  color: #fff; font: 700 .85rem var(--sans); letter-spacing: .2em; white-space: nowrap;
+  opacity: 0; transform: translate(-50%, 16px); pointer-events: none;
+  transition: opacity .4s, transform .5s var(--ease);
+}
+.scroll-hint.is-shown { opacity: 1; transform: translate(-50%, 0); }
+.scroll-hint__row b { display: inline-block; margin-left: .5em; letter-spacing: 0; animation: hint-bob 1.3s ease-in-out infinite; }
+@keyframes hint-bob { 0%, 100% { transform: translateY(-2px); } 50% { transform: translateY(4px); } }
+.scroll-hint__bar { display: none; width: 100%; min-width: 96px; height: 3px; border-radius: 3px; background: rgba(255, 255, 255, .2); overflow: hidden; }
+.scroll-hint.has-bar .scroll-hint__bar { display: block; }
+.scroll-hint__bar i { display: block; height: 100%; background: var(--gold); transform-origin: 0 50%; transform: scaleX(0); transition: transform .3s; }
+
 /* 火花粒子畫布（js/embers.js）——沒有粒子時隱藏 */
 .embers { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 125; pointer-events: none; visibility: hidden; }
 
@@ -655,6 +672,7 @@ html.fx.p3d .platform__zoom::after { content: ""; position: absolute; inset: 0; 
   .nav__links .nav__wish { padding: .35em .9em; }
   .field-row { grid-template-columns: 1fr; }
   .float-wish { right: 16px; bottom: 16px; }
+  .scroll-hint { bottom: 84px; }   /* 在「寫願望」按鈕上面 */
   .loader__label { display: none; }
 }
 

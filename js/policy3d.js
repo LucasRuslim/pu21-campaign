@@ -50,8 +50,9 @@
     // 手機 / 平板：記憶體、核心數太少，或是入門級的顯示晶片 → 不跑（iPhone 只會寫「Apple GPU」，看不出型號，先讓它跑）
     if (nav.deviceMemory && nav.deviceMemory < 4) return { ok: false, why: "記憶體只有 " + nav.deviceMemory + " GB" };
     if (nav.hardwareConcurrency && nav.hardwareConcurrency < 4) return { ok: false, why: "CPU 只有 " + nav.hardwareConcurrency + " 核" };
-    if (/mali-(4\d\d|t\d|g31|g51|g52)|adreno\D*([1-5]\d\d|60\d|61[0-2])\b|powervr|sgx|vivante|videocore|tegra/i.test(gpu)) {
-      return { ok: false, why: "入門級顯示晶片：" + gpu };
+    // 入門到中階的手機顯示晶片（Mali-G57 / G68、Adreno 619 以下…）實際跑起來會卡 → 用卡片
+    if (/mali-(4\d\d|t\d|g31|g51|g52|g57|g68|g71|g72)|adreno\D*([1-5]\d\d|6[01]\d)\b|powervr|sgx|vivante|videocore|tegra/i.test(gpu)) {
+      return { ok: false, why: "顯示晶片不夠力：" + gpu };
     }
     return { ok: true, why: "手機：" + (gpu || "未知顯示晶片") };
   }
@@ -552,6 +553,7 @@
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     scene.add(mesh);
+    field.push({ mesh: mesh, n: count });
     return mesh;
   }
 
@@ -626,7 +628,8 @@
     try {
       renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, powerPreference: "high-performance" });
     } catch (e) { api.ok = false; return Promise.reject(e); }
-    prMax = pr = Math.min(window.devicePixelRatio || 1, small ? 1.5 : 1.25);
+    prMax = pr = Math.min(window.devicePixelRatio || 1, 1.25);
+    prMin = small ? .6 : .7;
     renderer.setPixelRatio(pr);
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.NoToneMapping;
@@ -656,7 +659,7 @@
       new THREE.GLTFLoader().parse(b64ToBuffer(window.FLOWERS_GLB), "", function (gltf) {
         var geos = {};
         gltf.scene.traverse(function (o) { if (o.isMesh) geos[o.name] = o.geometry; });
-        var k = small ? .45 : 1;
+        var k = small ? .3 : 1;   // 手機：花草少很多（顯示晶片弱很多，畫面也小，看不太出來）
         if (geos.grass) scatter(geos.grass, Math.round(5200 * k), .2, 4, [.9, 1.4]);
         if (geos.moonweed) scatter(geos.moonweed, Math.round(1500 * k), .6, 3.2, [.9, 1.3], true);
         if (geos.daisy) scatter(geos.daisy, Math.round(1000 * k), .6, 2.6, [.9, 1.25], true);
@@ -773,16 +776,29 @@
     applyCamera(timeU.value);
     renderer.render(scene, camera);
   }
-  // 畫面太慢的時候自動降一點解析度（掉格比稍微糊一點更難看），順的時候再慢慢升回去
-  // 解析度已經降到最低還是一直很卡（不到 25 fps 好幾秒）→ 記起來，下次來這台裝置就直接用卡片版
-  var prMax = 1, pr = 1, ema = 16, slow = 0, fast = 0, stuck = 0;
+  // 畫面太慢的時候：先降解析度（掉格比稍微糊一點更難看），降到最低還是慢 → 花草變少；順的時候倒過來慢慢加回去
+  // 兩個都降到最低還是一直很卡（不到 25 fps 好幾秒）→ 記起來，下次來這台裝置就直接用卡片版
+  var prMax = 1, prMin = .7, pr = 1, ema = 16, slow = 0, fast = 0, stuck = 0;
+  var field = [], density = 1, DENSITY_MIN = .35;   // 花草（InstancedMesh）和原本的數量；density：現在畫幾成（位置是隨機的，少畫後面的就是均勻變稀）
+  api.quality = function () { return { pixelRatio: pr, density: density }; };   // 除錯用：在 Console 打 Policy3D.quality()
+  function setDensity(d) {
+    density = d;
+    field.forEach(function (f) { f.mesh.count = Math.round(f.n * d); });
+  }
   function adapt(ms) {
-    if (ms <= 0 || ms > 250) return;          // 分頁在背景、剛開始畫
-    ema += (ms - ema) * .08;
-    if (pr <= .7 && ema > 40) { if (++stuck === 150) store(function (s) { s.setItem(SLOW_KEY, "1"); }); } else stuck = 0;
+    if (ms <= 0 || ms > 1000) return;         // 分頁在背景、剛開始畫
+    ema += (Math.min(ms, 250) - ema) * .08;
+    if (pr <= prMin && density <= DENSITY_MIN && ema > 40) { if (++stuck === 150) store(function (s) { s.setItem(SLOW_KEY, "1"); }); } else stuck = 0;
     if (ema > 21) { slow++; fast = 0; } else if (ema < 13) { fast++; slow = 0; } else { slow = fast = 0; }
-    if (slow > 40 && pr > .7) { pr = Math.max(.7, pr - .15); renderer.setPixelRatio(pr); slow = 0; ema = 16; }
-    else if (fast > 240 && pr < prMax) { pr = Math.min(prMax, pr + .1); renderer.setPixelRatio(pr); fast = 0; }
+    if (slow > (small ? 20 : 40)) {           // 手機反應快一點
+      if (pr > prMin) { pr = Math.max(prMin, pr - .15); renderer.setPixelRatio(pr); }
+      else if (density > DENSITY_MIN) setDensity(Math.max(DENSITY_MIN, density * .7));
+      slow = 0; ema = 16;
+    } else if (fast > 240) {
+      if (density < 1) setDensity(Math.min(1, density / .7));
+      else if (pr < prMax) { pr = Math.min(prMax, pr + .1); renderer.setPixelRatio(pr); }
+      fast = 0;
+    }
   }
   function updateWorld() {
     var R = ph.bloom * 72;

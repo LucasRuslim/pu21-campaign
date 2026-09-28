@@ -117,7 +117,7 @@
   var P3 = window.Policy3D;
   var use3D = !!(P3 && P3.ok && animate && P3.hardware && P3.hardware.ok);
   if (P3 && P3.hardware) console.info("3D 花田：" + (use3D ? "開" : "關") + "（" + P3.hardware.why + "）");
-  var p3Active = 0;
+  var p3Active = 0, p3Running = false;
   var p3Targets = [0, 1, 2, 3, 4].map(function (i) {   // 權杖指向用：假的「元素」，位置是 3D 海報投影在畫面上的位置
     return { getBoundingClientRect: function () { return (P3 && P3.panelRect && P3.panelRect(i)) || { left: -9999, top: -9999, width: 0, height: 0, right: -9999, bottom: -9999 }; } };
   });
@@ -579,7 +579,7 @@
       gsap.to(mqTween, { timeScale: dir * (1 + Math.min(Math.abs(v) * .25, 6)), duration: .4, overwrite: true });
       skewTo(Math.max(-12, Math.min(12, v * -.6)));
       slideMq.forEach(function (t) { gsap.to(t, { timeScale: 1 + Math.min(Math.abs(v) * .2, 5), duration: .4, overwrite: true }); });
-      if (window.Embers) Embers.scroll(v);   // 捲動時的火花
+      if (window.Embers && !(p3Running && !finePointer)) Embers.scroll(v);   // 捲動時的火花（手機在 3D 花田裡不要：多一層全螢幕畫布會卡）
     });
   }
 
@@ -827,8 +827,9 @@
     }
     var tl = gsap.timeline({
       scrollTrigger: {
-        trigger: ".platform", start: "top top", end: "+=1190%", pin: ".platform__pin", scrub: .8, invalidateOnRefresh: true,
-        onToggle: function (self) { if (self.isActive) P3.start(); else P3.stop(); },
+        trigger: ".platform", start: "top top", end: "+=" + (isDesktop() ? 1190 : 850) + "%",   // 手機：短一點，不用滑那麼久
+        pin: ".platform__pin", scrub: .8, invalidateOnRefresh: true,
+        onToggle: function (self) { p3Running = self.isActive; if (self.isActive) P3.start(); else P3.stop(); },
         onRefresh: update,
         onUpdate: function (self) {
           if (!guide || !self.isActive || navSweeping) return;
@@ -1096,6 +1097,40 @@
     zone(".wish", "wish", "top 45%", "bottom 92%");
     zone(".footer", "footer", "top 92%", "bottom top");
   }
+
+  /* ---- 捲動提示：停在「要捲動才會動」的段落（畫面被固定住的那幾段）一陣子沒動 → 下面出現「往下滑」和這一段的進度
+     一進網站停在最上面沒動，也會出現一次 ---- */
+  if (animate) (function () {
+    var hint = el("div", "scroll-hint");
+    hint.setAttribute("aria-hidden", "true");
+    hint.innerHTML = '<span class="scroll-hint__row">往下滑繼續<b>↓</b></span><span class="scroll-hint__bar"><i></i></span>';
+    document.body.appendChild(hint);
+    var bar = hint.querySelector("i");
+    var timer = 0, shown = false, scrolled = false, revealedAt = 0;
+    function activePin() {
+      var all = ScrollTrigger.getAll();
+      for (var i = 0; i < all.length; i++) if (all[i].pin && all[i].isActive) return all[i];
+      return null;
+    }
+    function check() {
+      if (!revealed) { timer = setTimeout(check, 1000); return; }
+      if (!revealedAt) { revealedAt = performance.now(); timer = setTimeout(check, 4500); return; }   // 等首頁的進場動畫跑完
+      if (navSweeping) { timer = setTimeout(check, 1000); return; }
+      var st = activePin();
+      if (!st && (scrolled || window.scrollY > 40)) return;
+      bar.style.transform = "scaleX(" + (st ? st.progress : 0).toFixed(3) + ")";
+      hint.classList.toggle("has-bar", !!st);
+      hint.classList.add("is-shown");
+      shown = true;
+    }
+    window.addEventListener("scroll", function () {
+      if (window.scrollY > 40 && revealedAt) scrolled = true;
+      if (shown) { hint.classList.remove("is-shown"); shown = false; }
+      clearTimeout(timer);
+      timer = setTimeout(check, 2200);
+    }, { passive: true });
+    check();
+  })();
 
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(function () { ScrollTrigger.refresh(); });
