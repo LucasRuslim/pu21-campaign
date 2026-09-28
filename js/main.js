@@ -1098,38 +1098,37 @@
     zone(".footer", "footer", "top 92%", "bottom top");
   }
 
-  /* ---- 捲動提示：停在「要捲動才會動」的段落（畫面被固定住的那幾段）一陣子沒動 → 下面出現「往下滑」和這一段的進度
-     一進網站停在最上面沒動，也會出現一次 ---- */
+  /* ---- 捲動提示：在「要捲動才會動」的段落（畫面被固定住的那幾段）裡，下面一直有「往下滑」和這一段的進度條
+     首頁也有，一開始捲動就消失 ---- */
   if (animate) (function () {
     var hint = el("div", "scroll-hint");
     hint.setAttribute("aria-hidden", "true");
     hint.innerHTML = '<span class="scroll-hint__row">往下滑繼續<b>↓</b></span><span class="scroll-hint__bar"><i></i></span>';
     document.body.appendChild(hint);
     var bar = hint.querySelector("i");
-    var timer = 0, shown = false, scrolled = false, revealedAt = 0;
+    var shown = false, scrolled = false, revealedAt = 0, queued = false;
     function activePin() {
       var all = ScrollTrigger.getAll();
       for (var i = 0; i < all.length; i++) if (all[i].pin && all[i].isActive) return all[i];
       return null;
     }
-    function check() {
-      if (!revealed) { timer = setTimeout(check, 1000); return; }
-      if (!revealedAt) { revealedAt = performance.now(); timer = setTimeout(check, 4500); return; }   // 等首頁的進場動畫跑完
-      if (navSweeping) { timer = setTimeout(check, 1000); return; }
+    function show(on) { if (on !== shown) { hint.classList.toggle("is-shown", on); shown = on; } }
+    function update() {
+      queued = false;
+      if (revealed && !revealedAt) revealedAt = performance.now();
+      if (!revealedAt || performance.now() - revealedAt < 2000 || navSweeping) return show(false);   // 等首頁的進場動畫跑完
+      if (window.scrollY > 40) scrolled = true;
       var st = activePin();
-      if (!st && (scrolled || window.scrollY > 40)) return;
-      bar.style.transform = "scaleX(" + (st ? st.progress : 0).toFixed(3) + ")";
-      hint.classList.toggle("has-bar", !!st);
-      hint.classList.add("is-shown");
-      shown = true;
+      if (st) {
+        bar.style.transform = "scaleX(" + st.progress.toFixed(3) + ")";
+        hint.classList.add("has-bar");
+        return show(st.progress < .97);   // 快走完了就收起來，不要跟到下一段
+      }
+      hint.classList.remove("has-bar");
+      show(!scrolled);
     }
-    window.addEventListener("scroll", function () {
-      if (window.scrollY > 40 && revealedAt) scrolled = true;
-      if (shown) { hint.classList.remove("is-shown"); shown = false; }
-      clearTimeout(timer);
-      timer = setTimeout(check, 2200);
-    }, { passive: true });
-    check();
+    window.addEventListener("scroll", function () { if (!queued) { queued = true; requestAnimationFrame(update); } }, { passive: true });
+    setInterval(update, 500);
   })();
 
   if (document.fonts && document.fonts.ready) {
