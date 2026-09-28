@@ -21,13 +21,40 @@
 
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   if (!window.THREE || !THREE.GLTFLoader || !window.FLOWERS_GLB) return;
+  var SLOW_KEY = "p3d-slow";
+  function store(fn) { try { return fn(window.localStorage); } catch (e) { return null; } }
   (function () {
     try {
       var c = document.createElement("canvas");
-      api.ok = !!(c.getContext("webgl2") || c.getContext("webgl"));
+      var gl = c.getContext("webgl2") || c.getContext("webgl");
+      api.ok = !!gl;
+      if (gl) api.hardware = checkHardware(gl);
     } catch (e) { api.ok = false; }
   })();
   if (!api.ok) return;
+
+  /* 這台裝置跑不跑得動 3D 花田？api.hardware = { ok, why }（跑不動 → main.js 用原本的卡片）
+     網址加 ?3d=on / ?3d=off 可以強制開關（在手機上測試用） */
+  function checkHardware(gl) {
+    var q = /[?&]3d=(on|off)\b/.exec(location.search);
+    if (q) { store(function (s) { s.removeItem(SLOW_KEY); }); return { ok: q[1] === "on", why: "網址強制 " + q[1] }; }   // 順便清掉「上次太慢」的紀錄
+    if (store(function (s) { return s.getItem(SLOW_KEY); })) return { ok: false, why: "上次在這台裝置跑太慢" };
+    var nav = navigator;
+    if (nav.connection && nav.connection.saveData) return { ok: false, why: "省流量模式" };
+    var dbg = gl.getExtension("WEBGL_debug_renderer_info");
+    var gpu = String(gl.getParameter(dbg ? dbg.UNMASKED_RENDERER_WEBGL : gl.RENDERER) || "");
+    if (/swiftshader|llvmpipe|softpipe|software|basic render/i.test(gpu)) return { ok: false, why: "沒有用到顯示卡：" + gpu };
+    if (gl.getParameter(gl.MAX_TEXTURE_SIZE) < 4096) return { ok: false, why: "顯示卡太舊：" + gpu };
+    var phone = window.matchMedia("(pointer: coarse)").matches || Math.min(screen.width, screen.height) < 700;
+    if (!phone) return { ok: true, why: "電腦：" + gpu };
+    // 手機 / 平板：記憶體、核心數太少，或是入門級的顯示晶片 → 不跑（iPhone 只會寫「Apple GPU」，看不出型號，先讓它跑）
+    if (nav.deviceMemory && nav.deviceMemory < 4) return { ok: false, why: "記憶體只有 " + nav.deviceMemory + " GB" };
+    if (nav.hardwareConcurrency && nav.hardwareConcurrency < 4) return { ok: false, why: "CPU 只有 " + nav.hardwareConcurrency + " 核" };
+    if (/mali-(4\d\d|t\d|g31|g51|g52)|adreno\D*([1-5]\d\d|60\d|61[0-2])\b|powervr|sgx|vivante|videocore|tegra/i.test(gpu)) {
+      return { ok: false, why: "入門級顯示晶片：" + gpu };
+    }
+    return { ok: true, why: "手機：" + (gpu || "未知顯示晶片") };
+  }
 
   var TAU = Math.PI * 2;
   var renderer, scene, camera, canvas, timeU = { value: 0 };
@@ -747,10 +774,12 @@
     renderer.render(scene, camera);
   }
   // 畫面太慢的時候自動降一點解析度（掉格比稍微糊一點更難看），順的時候再慢慢升回去
-  var prMax = 1, pr = 1, ema = 16, slow = 0, fast = 0;
+  // 解析度已經降到最低還是一直很卡（不到 25 fps 好幾秒）→ 記起來，下次來這台裝置就直接用卡片版
+  var prMax = 1, pr = 1, ema = 16, slow = 0, fast = 0, stuck = 0;
   function adapt(ms) {
     if (ms <= 0 || ms > 250) return;          // 分頁在背景、剛開始畫
     ema += (ms - ema) * .08;
+    if (pr <= .7 && ema > 40) { if (++stuck === 150) store(function (s) { s.setItem(SLOW_KEY, "1"); }); } else stuck = 0;
     if (ema > 21) { slow++; fast = 0; } else if (ema < 13) { fast++; slow = 0; } else { slow = fast = 0; }
     if (slow > 40 && pr > .7) { pr = Math.max(.7, pr - .15); renderer.setPixelRatio(pr); slow = 0; ema = 16; }
     else if (fast > 240 && pr < prMax) { pr = Math.min(prMax, pr + .1); renderer.setPixelRatio(pr); fast = 0; }
