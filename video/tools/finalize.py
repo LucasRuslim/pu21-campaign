@@ -29,6 +29,13 @@ for fmt in ("feed", "story"):
     if not os.path.exists(silent):
         print("missing", silent)
         continue
+    # 檔案太大（聊天室上傳上限 30 MB）就用 CRF 16 再壓一次，肉眼看不出差別，IG 上傳時本來也會重壓
+    if os.path.getsize(silent) > 28e6:
+        smaller = os.path.join(BUILD, f"{fmt}_silent_small.mp4")
+        run("-i", silent, "-c:v", "libx264", "-preset", "slow", "-crf", "16", "-tune", "film",
+            "-pix_fmt", "yuv420p", "-profile:v", "high", "-level", "4.2",
+            "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709", "-movflags", "+faststart", smaller)
+        silent = smaller
     # 有配樂：影像直接複製（不重壓），聲音壓成 AAC 256k / 48 kHz
     run("-i", silent, "-i", os.path.join(BUILD, "music.wav"),
         "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "256k", "-ar", "48000",
