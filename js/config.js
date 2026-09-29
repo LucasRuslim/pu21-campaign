@@ -16,8 +16,8 @@ window.SITE_CONFIG = {
   president: {
     name: "張芝穎",
     className: "",                // 班別（留空就不顯示）
-    photo: "assets/president2-cut.webp",   // 已去背的照片（首頁用，底部淡出）
-    photoFull: "assets/president2-full.webp",   // 候選人介紹用（底部不淡出，站在畫面最下緣）
+    photo: "assets/president3-cut.webp",   // 已去背的照片（首頁用，底部淡出）
+    photoFull: "assets/president3-full.webp",   // 候選人介紹用（底部不淡出，站在畫面最下緣）
     instagram: "ylning.5271",
     intro: "跟 AI 討論政見到半夜（AI 可能比我還熟）。曾經在睡夢中穿越回古代，順便把地理課上完，醒來發現跟課本上一樣（？）",
     points: [
