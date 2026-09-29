@@ -2,3 +2,5 @@
 node_modules/
 build/
 src/fonts/*.ttf
+# 無聲版直接傳給使用者，不放進網站的 repo（太大）
+out/*_silent.mp4
