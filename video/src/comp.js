@@ -1386,9 +1386,9 @@
     if (u > 0 && u < 0.6) { ctx.globalCompositeOperation = "lighter"; ctx.globalAlpha = 0.5 * Math.exp(-u * 9); ctx.fillStyle = "#cfe6ff"; ctx.fillRect(0, 0, W, H); }
     ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1;
     ctx.drawImage(VIGNETTE, 0, 0);
-    // 開頭淡入、結尾不淡出（IG 會重播，保持畫面）
-    const fin = seg(t, 0, 0.25);
-    if (fin < 1) { ctx.globalAlpha = 1 - fin; ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+    // 開頭只微微變亮（不從全黑開始：IG 重播時不會閃一下黑畫面，限動點開也不會像還在載入）
+    const fin = seg(t, 0, 0.3);
+    if (fin < 1) { ctx.globalAlpha = 0.45 * (1 - E.outQuad(fin)); ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
     ctx.globalCompositeOperation = "overlay"; ctx.globalAlpha = 0.085;
     ctx.drawImage(GRAIN[Math.floor(t * FPS) % 4], 0, 0, W, H);
     ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1;

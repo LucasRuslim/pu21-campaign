@@ -34,4 +34,4 @@ python3 tools/finalize.py                     # 合成 → out/
 - [x] 配樂（tools/music.py：自己合成，沒有版權問題）— 各軌音量已平衡（LEVELS=1 可以看每小節音量），tools/audio_view.py 看頻譜
 - [x] 整支錄出來、逐秒檢查動態（每 0.5 秒一格的總覽都看過）
 - [x] 合成成品 → out/，封面圖
-- [ ] 傳給使用者、刪掉每小時自動接續的 Routine（trig_01Byc2PCaZMoAefZ1VXY6ZFd）
+- [x] 傳給使用者、刪掉每小時自動接續的 Routine（trig_01Byc2PCaZMoAefZ1VXY6ZFd）
