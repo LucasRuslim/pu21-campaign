@@ -8,7 +8,7 @@ window.SITE_CONFIG = {
   // 撕紙段落的大字：參選原因
   reason: "我們希望大家的意見可以被學校聽到，在力所能及的範圍，讓學校變得更好。",
   candidateNumber: "2",           // 候選編號：「請投 2 號」
-  voteDate: "[投票日期]",           // 例如 "10月 15日（三）"
+  voteDate: "10月 5日（一）",           // 例如 "10月 15日（三）"
   // 願望寄到這兩個信箱（透過 FormSubmit，第一次有人提交時，第一個信箱會收到一封「Activate」確認信，按下去之後才會開始寄）
   wishEmail: { to: "11401031@yh.tp.edu.tw", cc: ["11401036@yh.tp.edu.tw"] },
   accent: "#3f7fcf",              // 主題色：芙莉蓮的魔力藍（可換成校色）
