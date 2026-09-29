@@ -45,13 +45,13 @@
     line2: 2.5, caption: 3.3,
     quoteOut: 4.4,
     tilt0: 4.5, tilt1: 6.3,              // 鏡頭從夜空往下搖到花田
-    s3a: 5.05, s3aOut: 6.0,
-    s3b: 6.2, s3bOut: 7.95,
-    s3c: 8.55, s3cOut: 9.7,
-    noteIn: [5.25, 5.4, 5.55, 5.72, 5.9, 6.06, 6.24, 6.42],
-    ignite: 7.5, igniteStep: 0.075, burn: 0.5,
+    s3a: 5.05, s3aOut: 5.9,
+    s3b: 6.35, s3bOut: 7.85,
+    s3c: 8.45, s3cOut: 9.55,
+    noteIn: [5.3125, 5.46875, 5.625, 5.78125, 5.9375, 6.09375, 6.25, 6.40625],   // 16 分音符
+    ignite: 7.5, igniteStep: 0.078125, burn: 0.5,          // 32 分音符
     land: [8.125, 8.281, 8.4375, 8.594, 8.75, 8.906, 9.0625, 9.375],
-    fall: 9.42, impact: 10.0,            // 權杖落地
+    fall: 9.4, impact: 10.0,            // 權杖落地
     title: 10.12, sub: 10.8,
     end: 12.5                            // 結尾卡
   };
@@ -515,7 +515,7 @@
       items.push({ k: 0, d, wx, spr: pickFlower(r), size: 0.78 + r() * 0.5, rot: r() * TAU, ph: r() * TAU, stem: 1 + r() * 0.8, lean: (r() - 0.5) * 0.5, leaf: (r() * 3) | 0, bt: bloomAt(wx, d) + r() * 0.18 });
     }
     // 流星落下的地方：一朵大花
-    LANDS.forEach((L, i) => items.push({ k: 2, d: L.d, wx: L.wx, spr: 0, size: 1.55, rot: i * 1.3, ph: i, stem: 1.25, lean: 0, leaf: i % 3, bt: L.t }));
+    LANDS.forEach((L, i) => items.push({ k: 2, d: L.d, wx: L.wx, spr: 0, size: 1.9, rot: i * 1.3, ph: i, stem: 1.25, lean: 0, leaf: i % 3, bt: L.t }));
     // 前景的草
     const g = STORY ? 300 : 240;
     for (let i = 0; i < g; i++) {
@@ -762,9 +762,19 @@
         const fl = Math.exp(-u * 7);
         sprite(GLOW_WHITE, p.x, p.y - p.s * 0.2, p.s * 0.55, fl);
         sprite(FLARE, p.x, p.y - p.s * 0.2, p.s * 1.1, fl * 0.9);
-        const rr = p.s * 0.9 * E.outCubic(seg(u, 0, 0.8));
-        ctx.strokeStyle = `rgba(168,220,255,${0.7 * (1 - seg(u, 0.1, 0.8))})`; ctx.lineWidth = 2.5;
-        ctx.beginPath(); ctx.ellipse(p.x, p.y, rr, rr * 0.28, 0, 0, TAU); ctx.stroke();
+        // 開花的前緣：一圈光在地上擴散（跟 FIELD 的 bloomAt 同一個速度）
+        // 透視：遠的那一邊壓扁、靠近地平線；只畫在地面上
+        const rho = Math.max(0, u - 0.08) * 4.2, rx = rho * p.s, hz = horizonY(t);
+        const yFar = hz + K / (de + rho / 1.25), dn = de - rho / 1.25, yNear = dn > 0.35 ? hz + K / dn : H + 600;
+        const ra = 0.7 * (1 - seg(u, 0.25, 1.3));
+        if (rx > 2 && ra > 0) {
+          ctx.save();
+          ctx.beginPath(); ctx.rect(0, hz + 2, W, H); ctx.clip();
+          ctx.strokeStyle = `rgba(168,220,255,${ra})`; ctx.lineWidth = 3;
+          ctx.shadowColor = "rgba(90,160,255,0.9)"; ctx.shadowBlur = 14;
+          ctx.beginPath(); ctx.ellipse(p.x, (yFar + yNear) / 2, rx, Math.max(1, (yNear - yFar) / 2), 0, 0, TAU); ctx.stroke();
+          ctx.restore();
+        }
       }
     });
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over"; ctx.lineCap = "butt";
@@ -870,7 +880,8 @@
     return { alpha: E.outQuad(u), dy: (1 - e) * (o.dist ?? 28), blur: (1 - e) * (o.blur ?? 10), u };
   }
   function dissolveOut(t, t0, i, n, o = {}) {
-    const st = t0 + (i / Math.max(1, n)) * (o.spread ?? 0.3), u = seg(t, st, st + (o.dur || 0.45)), e = E.inCubic(u);
+    const order = o.centerOut ? Math.abs(i - (n - 1) / 2) / ((n - 1) / 2 || 1) * (n - 1) : i;
+    const st = t0 + (order / Math.max(1, n)) * (o.spread ?? 0.3), u = seg(t, st, st + (o.dur || 0.45)), e = E.inCubic(u);
     return { k: 1 - E.inQuad(u), dy: -e * (o.dist ?? 46), blur: e * 14, scale: 1 + e * 0.06, u };
   }
   function sweep(t, t0, dur, x, span) {       // 一道光從左掃到右
@@ -927,7 +938,7 @@
   const S3 = [
     { text: COPY.s3a, t0: T.s3a, t1: T.s3aOut, hi: "" },
     { text: COPY.s3b, t0: T.s3b, t1: T.s3bOut, hi: "願望" },
-    { text: COPY.s3c, t0: T.s3c, t1: T.s3cOut, hi: "都算數" }
+    { text: COPY.s3c, t0: T.s3c, t1: T.s3cOut, hi: "都算數", centerOut: true }
   ].map((s) => ({ ...s, L: layout(s.text, F.serif(LY.s3Size), 5) }));
   function drawS3(t) {
     const font = F.serif(LY.s3Size);
@@ -936,7 +947,7 @@
       const hiStart = s.hi ? s.text.indexOf(s.hi) : -1;
       s.L.chars.forEach((c, i) => {
         const r = riseIn(t, s.t0, i, { dur: 0.65, stagger: 0.045, dist: 24 });
-        const out = dissolveOut(t, s.t1, i, s.L.chars.length, { spread: 0.2, dur: 0.35, dist: 30 });
+        const out = dissolveOut(t, s.t1, i, s.L.chars.length, { spread: 0.2, dur: 0.35, dist: 30, centerOut: s.centerOut });
         const hi = hiStart >= 0 && i >= hiStart && i < hiStart + s.hi.length;
         glyph(c.ch, W / 2 + c.cx, LY.s3Y, font, {
           alpha: r.alpha * out.k, dy: r.dy + out.dy, blur: r.blur + out.blur, scale: out.scale,
@@ -956,7 +967,7 @@
     if (t < T.fall) return null;
     if (t < T.impact) {
       const u = seg(t, T.fall, T.impact), e = E.inQuad(u);
-      return { y: lerp(-H * 1.25, 0, e), spin: (1 - u) * (1 - u) * 3.2 * 72, blur: 1 - u * 0.3, a: 1 };
+      return { y: lerp(-H * 0.95, 0, e), spin: (1 - u) * (1 - u) * 1.6 * 72, blur: 1 - u * 0.3, a: 1 };
     }
     if (t < T.end) return { y: 0, spin: Math.sin((t - T.impact) * 1.1) * 5, blur: 0, a: 1 };
     const u = seg(t, T.end - 0.05, T.end + 0.6), e = E.inCubic(u);
@@ -1214,7 +1225,7 @@
     if (t < T.end) return;
     const EN = LY.end, em = EN.emblem;
     // 魔法陣中間的「2」
-    const nu = seg(t, T.end + 0.45, T.end + 1.0), ne = E.outBack(nu, 1.6);
+    const nu = seg(t, T.end + 0.47, T.end + 1.0), ne = E.outBack(nu, 1.6);
     if (nu > 0) {
       glyph(COPY.number, em.x + em.r * 0.02, em.y + em.r * 0.02, F.latin(em.r * 1.55), { alpha: E.outQuad(nu), scale: 0.6 + 0.4 * ne, fill: C.gold, glow: 34, glowColor: "rgba(230,190,110,0.85)", hot: Math.exp(-(t - T.end - 0.5) * 3) * 0.8, shadow: 0.6 });
       glyph("No.", em.x - em.r * 0.5, em.y - em.r * 0.42, F.latin(em.r * 0.3), { alpha: E.outQuad(nu), fill: C.gold, glow: 10, glowColor: "rgba(230,190,110,0.6)" });
@@ -1297,7 +1308,7 @@
       glyphRun(COPY.ctaStory, W / 2, EN.ctaY + (1 - e) * 14, F.sans(38, 700), 4, { alpha: e, fill: C.ivory, glow: 16, glowColor: "rgba(63,127,207,0.9)", shadow: 0.9 });
       // 放連結貼紙的位置：一團柔和的光 + 往下的箭頭
       ctx.globalCompositeOperation = "lighter";
-      sprite(GLOW_SOFT, W / 2, EN.slotY + 20, 420, 0.55 * e, 0.32);
+      sprite(GLOW_SOFT, W / 2, EN.slotY + 20, 440, 0.85 * e, 0.34);
       ctx.globalCompositeOperation = "source-over";
       const bounce = Math.abs(Math.sin((t - T.end) * 4.2)) * 12;
       ctx.save(); ctx.globalAlpha = e; ctx.strokeStyle = C.manaHi; ctx.lineWidth = 5; ctx.lineCap = "round"; ctx.lineJoin = "round";

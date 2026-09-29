@@ -30,8 +30,8 @@ python3 tools/finalize.py                     # 合成 → out/
 ## 狀態
 - [x] 權杖 3D 轉一圈的圖（tools/render-staff.mjs）
 - [x] 畫面（src/comp.js）— 貼文版第一輪檢查完，字的對比已修
-- [ ] 限時動態版檢查（版面、IG 上下的安全區）
-- [ ] 配樂（tools/music.py：自己合成，沒有版權問題）
+- [x] 限時動態版檢查（版面、IG 上下的安全區）
+- [x] 配樂（tools/music.py：自己合成，沒有版權問題）— 各軌音量已平衡（LEVELS=1 可以看每小節音量），tools/audio_view.py 看頻譜
 - [ ] 整支錄出來、逐秒檢查動態
 - [ ] 合成成品 → out/，封面圖
 - [ ] 傳給使用者、刪掉每小時自動接續的 Routine（trig_01Byc2PCaZMoAefZ1VXY6ZFd）
