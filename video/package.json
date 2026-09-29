@@ -1,0 +1,8 @@
+{
+  "name": "pu21-launch-video",
+  "private": true,
+  "description": "IG 宣傳影片（video/README.md）",
+  "dependencies": {
+    "three": "0.147.0"
+  }
+}

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>普二一 · 寫下你的願望（影片）</title>
+<style>
+  @font-face { font-family: "Chiron Hei HK"; font-weight: 900; src: url(fonts/ChironHeiHK-900.ttf); }
+  @font-face { font-family: "Cormorant Garamond"; font-style: italic; font-weight: 600; src: url(fonts/CormorantGaramond-600i.ttf); }
+  @font-face { font-family: "LXGW WenKai TC"; font-weight: 700; src: url(fonts/LXGWWenKaiTC-700.ttf); }
+  @font-face { font-family: "Noto Sans TC"; font-weight: 500; src: url(fonts/NotoSansTC-500.ttf); }
+  @font-face { font-family: "Noto Sans TC"; font-weight: 700; src: url(fonts/NotoSansTC-700.ttf); }
+  @font-face { font-family: "Noto Serif TC"; font-weight: 700; src: url(fonts/NotoSerifTC-700.ttf); }
+  @font-face { font-family: "Noto Serif TC"; font-weight: 900; src: url(fonts/NotoSerifTC-900.ttf); }
+  html, body { margin: 0; background: #000; overflow: hidden; }
+  canvas { display: block; }
+  /* 預覽用：瀏覽器打開時縮到視窗大小；錄影時 viewport 剛好等於畫布大小 */
+  body.preview { display: grid; place-items: center; height: 100vh; }
+  body.preview canvas { max-height: 100vh; max-width: 100vw; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script src="comp.js"></script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>staff turntable</title>
+<style>html,body{margin:0;background:transparent}</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script src="../node_modules/three/build/three.min.js"></script>
+<script src="../node_modules/three/examples/js/loaders/GLTFLoader.js"></script>
+<script src="../node_modules/three/examples/js/environments/RoomEnvironment.js"></script>
+<script>
+/* 用網站的權杖模型（assets/staff.glb）算出一圈 360° 的高解析度圖片，給影片用。
+   燈光和材質跟 js/staff3d.js 一樣，只是加上影片的夜空藍輪廓光。 */
+(function () {
+  var q = new URLSearchParams(location.search);
+  var CW = +q.get("w") || 600, CH = +q.get("h") || 1900;
+  var canvas = document.getElementById("c");
+  var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(1);
+  renderer.setSize(CW, CH, false);
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  renderer.physicallyCorrectLights = true;
+  renderer.setClearColor(0x000000, 0);
+
+  var scene = new THREE.Scene();
+  var pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new THREE.RoomEnvironment(), 0.04).texture;
+
+  var FOV = 18;
+  var camera = new THREE.PerspectiveCamera(FOV, CW / CH, 0.1, 100);
+  var key = new THREE.DirectionalLight(0xfff1e0, 2.4); key.position.set(-4, 6, 8); scene.add(key);
+  var rim = new THREE.DirectionalLight(0x7cc4ff, 4.2); rim.position.set(6, 1, -5); scene.add(rim);
+  var rim2 = new THREE.DirectionalLight(0x9fd0ff, 2.2); rim2.position.set(-6, 2, -4); scene.add(rim2);
+  var fill = new THREE.DirectionalLight(0xffd9a8, 0.8); fill.position.set(5, -3, 6); scene.add(fill);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.15));
+  var spinner = new THREE.Group(); scene.add(spinner);
+  var orbLight = new THREE.PointLight(0xff1a14, 6, 4, 2);
+
+  window.meta = null;
+  new THREE.GLTFLoader().load("../../assets/staff.glb", function (gltf) {
+    var model = gltf.scene;
+    var box = new THREE.Box3().setFromObject(model);
+    var center = box.getCenter(new THREE.Vector3());
+    model.position.sub(center);
+    var L = box.max.y - box.min.y;
+    var orbY = 0;
+    model.traverse(function (o) {
+      if (!o.isMesh) return;
+      var m = o.material;
+      if (m) m.envMapIntensity = 1.3;
+      if (/orb/i.test(o.name) || (m && /orb/i.test(m.name))) {
+        o.material = new THREE.MeshPhysicalMaterial({
+          color: 0x8f0006, emissive: 0x3d0002, emissiveIntensity: 1,
+          roughness: 0.04, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 2.2
+        });
+        var p = new THREE.Vector3(); o.getWorldPosition(p);
+        orbLight.position.copy(p).sub(center);
+        orbY = p.y - center.y;
+      }
+      if (m && /gold/i.test(m.name)) { m.roughness = 0.2; m.envMapIntensity = 1.6; }
+      if (m && /lacquer/i.test(m.name)) { m.envMapIntensity = 1.4; }
+    });
+    spinner.add(model); spinner.add(orbLight);
+    var PAD = 1.04;
+    camera.position.set(0, 0, (L * PAD / 2) / Math.tan((FOV / 2) * Math.PI / 180));
+    camera.updateProjectionMatrix();
+    // 寶珠在畫面上的位置（0–1，從上往下）
+    window.meta = { L: L, orbY: orbY, orbV: 0.5 - (orbY / (L * PAD)), w: CW, h: CH };
+  });
+
+  window.renderAngle = function (deg) {
+    spinner.rotation.y = deg * Math.PI / 180;
+    renderer.render(scene, camera);
+    return canvas.toDataURL("image/png");
+  };
+})();
+</script>
+</body>
+</html>

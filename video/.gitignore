@@ -1,0 +1,4 @@
+# 重新產生得出來的東西（跑 setup.sh）
+node_modules/
+build/
+src/fonts/*.ttf
