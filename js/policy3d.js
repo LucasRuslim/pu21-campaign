@@ -620,6 +620,127 @@
     return { left: r.left + minX, top: r.top + minY, width: maxX - minX, height: maxY - minY, right: r.left + maxX, bottom: r.top + maxY };
   }
 
+  /* ---------------- 花田裡的小夥伴（原創 3D 角色，程式動畫） ----------------
+     模型是沒有骨架的網格（assets/characters/*.glb，已縮減面數和貼圖），所以動作是用程式做的：
+     走路（一跳一跳、身體左右搖）、停下來朝鏡頭揮動 / 跳起來轉圈、呼吸；開花的時候一個一個彈出來。
+     face：模型「正面」相對於 +Z 的角度；height：在花田裡的高度（公尺） */
+  var CHARS = [
+    { file: "mike",     height: 1.4, face: 0, z: 0 },
+    { file: "lucas",    height: 1.65, face: 0, z: 1 },
+    { file: "mungtong", height: 1.2, face: 0, z: 2 },
+    { file: "gay",      height: 1.5,  face: 0, z: 3 }
+  ];
+  var pals = [], blobTex = null;
+  function blobTexture() {
+    if (blobTex) return blobTex;
+    var c = document.createElement("canvas"); c.width = c.height = 64;
+    var g = c.getContext("2d"), gr = g.createRadialGradient(32, 32, 2, 32, 32, 30);
+    gr.addColorStop(0, "rgba(0,0,0,.55)"); gr.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+    blobTex = new THREE.CanvasTexture(c);
+    return blobTex;
+  }
+  function buildPals(poss) {
+    if (location.protocol === "file:") return;   // file:// 讀不到模型檔
+    var loader = new THREE.GLTFLoader();
+    CHARS.forEach(function (c, i) {
+      // 家：放在海報「對面」，離鏡頭近一點；花草要先避開這一塊（花是同步種的，模型是之後才載入好）
+      var pp = poss[c.z], hr = small ? .45 : .9;
+      var home = new THREE.Vector3(pp.x - Math.sign(pp.x) * (small ? 2.1 : 3.2), 0, pp.z - .2);
+      clearBoxes.push({ x: home.x, z: home.z, hw: hr + .5, hd: hr + .5 });
+      loader.load("assets/characters/" + c.file + ".glb", function (gltf) {
+        var model = gltf.scene;
+        model.traverse(function (o) {
+          if (!o.isMesh) return;
+          o.frustumCulled = false;
+          var m = o.material;
+          m.metalness = 0; m.roughness = .85;    // 沒有環境貼圖，金屬材質會變黑
+          if (m.map) m.map.anisotropy = 4;
+          m.needsUpdate = true;
+        });
+        var box = new THREE.Box3().setFromObject(model), sz = box.getSize(new THREE.Vector3()), ctr = box.getCenter(new THREE.Vector3());
+        var k = c.height / sz.y;
+        model.scale.setScalar(k);
+        model.position.set(-ctr.x * k, -box.min.y * k, -ctr.z * k);
+        var body = new THREE.Group(); body.add(model);          // body：壓扁 / 拉長 / 傾斜（腳底是原點）
+        var yawG = new THREE.Group(); yawG.rotation.y = c.face; yawG.add(body);
+        var root = new THREE.Group(); root.add(yawG);            // root：位置 + 朝向
+        var shadow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: blobTexture(), transparent: true, depthWrite: false, fog: false }));
+        shadow.rotation.x = -Math.PI / 2; shadow.position.y = .015;
+        var w = Math.max(sz.x, sz.z) * k;
+        shadow.scale.setScalar(Math.max(.9, w * 1.5));
+        var pal = {
+          root: root, body: body, shadow: shadow, home: home, r: hr, k: k,
+          ang: i * 1.7, dir: i % 2 ? 1 : -1, yaw: 0, t: rnd(0, 5), mode: "walk", until: rnd(3, 6), tm: 0, spin: 0, hop: 0, moving: 0, seed: i * 2.3
+        };
+        pal.pos = new THREE.Vector3(home.x + Math.cos(pal.ang) * pal.r, 0, home.z + Math.sin(pal.ang) * pal.r);
+        root.position.copy(pal.pos);
+        shadow.position.x = pal.pos.x; shadow.position.z = pal.pos.z;
+        scene.add(root); scene.add(shadow);
+        pals.push(pal);
+      }, undefined, function () {});
+    });
+  }
+  var palTgt = new THREE.Vector3();
+  function angDiff(a, b) { var d = (b - a) % TAU; if (d > Math.PI) d -= TAU; if (d < -Math.PI) d += TAU; return d; }
+  function updatePals(dt, time) {
+    for (var i = 0; i < pals.length; i++) {
+      var p = pals[i];
+      // 開花的前緣經過的時候彈出來
+      var d = Math.hypot(p.home.x - bloomC.x, p.home.z - bloomC.y), R = ph.bloom * 72;
+      var rb = ph.bloom >= 1 ? 1 : Math.max(0, Math.min(1, (R - d) / 5));
+      var pop = rb <= 0 ? 0 : backOut(rb);
+      p.root.visible = p.shadow.visible = pop > .001;
+      if (!p.root.visible) continue;
+      // 只有在鏡頭附近才需要算動作
+      var dz = Math.abs(camera.position.z - p.home.z);
+      if (dz > 26 && ph.swoop >= 1) continue;
+      p.t += dt; p.tm += dt;
+      var speed = 0, tx = 0, tz = 0;
+      if (p.mode === "walk") {
+        speed = .75;
+        p.ang += p.dir * dt * speed / p.r;
+        palTgt.set(p.home.x + Math.cos(p.ang) * p.r, 0, p.home.z + Math.sin(p.ang) * p.r);
+        tx = palTgt.x - p.pos.x; tz = palTgt.z - p.pos.z;
+        var len = Math.hypot(tx, tz) || 1;
+        p.pos.x += tx; p.pos.z += tz;
+        var want = Math.atan2(tx, tz);
+        p.yaw += angDiff(p.yaw, want) * Math.min(1, dt * 6);
+        if (p.tm > p.until) { p.mode = Math.random() < .5 ? "wave" : "jump"; p.tm = 0; p.until = p.mode === "jump" ? 1.5 : 2.4; p.spin = 0; }
+      } else {
+        // 停下來：轉向鏡頭
+        var toCam = Math.atan2(camera.position.x - p.pos.x, camera.position.z - p.pos.z);
+        p.yaw += angDiff(p.yaw, toCam) * Math.min(1, dt * 4);
+        if (p.mode === "jump") p.spin = Math.max(0, p.tm / p.until);
+        if (p.tm > p.until) { p.mode = "walk"; p.tm = 0; p.until = rnd(4, 8); }
+      }
+      p.moving += ((p.mode === "walk" ? 1 : 0) - p.moving) * Math.min(1, dt * 5);
+      var ph1 = time * 7 + p.seed;
+      var bob = Math.abs(Math.sin(ph1)) * .07 * p.moving;                       // 走路：一跳一跳
+      var sway = Math.sin(ph1) * .09 * p.moving;                                // 左右搖
+      var breathe = Math.sin(time * 2.2 + p.seed) * .012 * (1 - p.moving);      // 呼吸
+      var y = bob, sx = 1, sy = 1, rz = sway, rx = .06 * p.moving, ry = 0;
+      if (p.mode === "wave") {
+        rz = Math.sin(time * 9 + p.seed) * .16; y = Math.abs(Math.sin(time * 6 + p.seed)) * .05;   // 開心地左右搖
+      } else if (p.mode === "jump") {
+        var u = Math.min(1, p.tm / p.until), a = Math.sin(u * Math.PI * 2);            // 兩次跳
+        var jh = Math.abs(Math.sin(u * Math.PI * 2));
+        y = jh * .5;
+        sy = 1 + (jh - .5) * .12 - (jh < .12 ? (.12 - jh) * 1.2 : 0); sx = 1 / Math.sqrt(sy);
+        ry = u * TAU * 2;
+      }
+      sy += breathe; sx -= breathe * .5;
+      p.body.position.y = y;
+      p.body.scale.set(sx * pop, sy * pop, sx * pop);
+      p.body.rotation.set(rx, ry, rz);
+      p.root.position.set(p.pos.x, 0, p.pos.z);
+      p.root.rotation.y = p.yaw;
+      p.shadow.position.x = p.pos.x; p.shadow.position.z = p.pos.z;
+      var sh = 1 - Math.min(.5, y * .8);
+      p.shadow.scale.setScalar(Math.max(.9, (p.shadow.userData.w || (p.shadow.userData.w = p.shadow.scale.x))) * sh * pop);
+    }
+  }
+
   /* ---------------- 公開的 API ---------------- */
   api.init = function (o) {
     opts = o;
@@ -653,6 +774,7 @@
     poss.concat([qPos]).forEach(function (p) { clearBoxes.push({ x: p.x, z: p.z, hw: PANEL_W / 2 + .05, hd: .28 }); });
     clearBoxes.push({ x: qPos.x, z: qPos.z + 2.4, hw: PANEL_W / 2 + .5, hd: 2.5 });   // 問題卡片前面留一條小路，鏡頭推進去時不會穿過花
     ring = makeRing();
+    buildPals(poss);   // 小夥伴：模型另外載入，不會擋住花田的初始化
 
     // 花
     var loaderDone = new Promise(function (resolve) {
@@ -774,6 +896,7 @@
     timeU.value += dt;
     updateWorld();
     applyCamera(timeU.value);
+    updatePals(dt, timeU.value);
     renderer.render(scene, camera);
   }
   // 畫面太慢的時候：先降解析度（掉格比稍微糊一點更難看），降到最低還是慢 → 花草變少；順的時候倒過來慢慢加回去

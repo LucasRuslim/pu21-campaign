@@ -44,3 +44,8 @@ python -m http.server 5173
 ```
 
 然後打開 http://localhost:5173
+
+## 花田裡的小夥伴
+
+`assets/characters/*.glb` 是四個原創角色（Mike、Lucas、Mung tong、Gay），原始檔約 13 MB，已縮減面數和貼圖到約 1 MB。
+模型沒有骨架，動作（走路、搖擺、跳躍轉圈、彈出）是 `js/policy3d.js` 的 `updatePals` 用程式做的。
